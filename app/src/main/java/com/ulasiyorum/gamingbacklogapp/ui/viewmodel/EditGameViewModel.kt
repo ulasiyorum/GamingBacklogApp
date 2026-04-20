@@ -28,9 +28,17 @@ class EditGameViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     fun saveChanges(state: BacklogState, notes: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { current -> current.copy(isSaving = true, errorMessage = null) }
-            GameRepository.updateUserGame(userGameId, state, notes.ifBlank { null })
+            val result = if (SessionManager.isGuestSession.value) {
+                SessionManager.updateGuestGame(userGameId, state, notes.ifBlank { null })
+            } else {
+                GameRepository.updateUserGame(userGameId, state, notes.ifBlank { null })
+            }
+
+            result
                 .onSuccess { user ->
-                    SessionManager.setCurrentUser(user)
+                    if (!SessionManager.isGuestSession.value) {
+                        SessionManager.setCurrentUser(user)
+                    }
                     _uiState.update { current -> current.copy(isSaving = false) }
                     onSuccess()
                 }
@@ -48,9 +56,17 @@ class EditGameViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     fun removeGame(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { current -> current.copy(isRemoving = true, errorMessage = null) }
-            GameRepository.removeGameFromUser(userGameId)
+            val result = if (SessionManager.isGuestSession.value) {
+                SessionManager.removeGuestGame(userGameId)
+            } else {
+                GameRepository.removeGameFromUser(userGameId)
+            }
+
+            result
                 .onSuccess { user ->
-                    SessionManager.setCurrentUser(user)
+                    if (!SessionManager.isGuestSession.value) {
+                        SessionManager.setCurrentUser(user)
+                    }
                     _uiState.update { current -> current.copy(isRemoving = false) }
                     onSuccess()
                 }

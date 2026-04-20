@@ -17,6 +17,7 @@ data class ProfileUiState(
 
 class ProfileViewModel : ViewModel() {
     val currentUser: StateFlow<User?> = SessionManager.currentUser
+    val isGuestSession: StateFlow<Boolean> = SessionManager.isGuestSession
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()

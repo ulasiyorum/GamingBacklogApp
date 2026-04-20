@@ -18,6 +18,7 @@ data class RegisterUiState(
 class RegisterViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+    val isGuestSession: StateFlow<Boolean> = SessionManager.isGuestSession
 
     fun clearError() {
         _uiState.update { current -> current.copy(errorMessage = null) }
@@ -28,7 +29,7 @@ class RegisterViewModel : ViewModel() {
             _uiState.update { current -> current.copy(isLoading = true, errorMessage = null) }
             GameRepository.register(name = name, email = email, password = password)
                 .onSuccess { user ->
-                    SessionManager.setCurrentUser(user)
+                    SessionManager.finalizeAuthenticatedSession(user)
                     _uiState.update { current -> current.copy(isLoading = false) }
                     onSuccess()
                 }

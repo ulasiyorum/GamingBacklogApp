@@ -23,6 +23,7 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
+    val isGuestSession by viewModel.isGuestSession.collectAsState()
 
     Column(
         modifier = Modifier
@@ -32,6 +33,14 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Yeni Hesap Oluştur", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+        if (isGuestSession) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Misafir backlog'un hesabina aktarilacak.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(

@@ -23,8 +23,19 @@ fun WelcomeScreen(onContinueLogin: () -> Unit,
             Text("Giriş Yap")
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         TextButton(onClick = onContinueWithoutLogin) {
             Text("Giriş Yapmadan Devam Et")
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Misafir modunda backlog ve profilin bu cihazda yerel olarak saklanir.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
     }
 }

@@ -55,11 +55,26 @@ class GameDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
                 current.copy(isSubmitting = true, errorMessage = null, infoMessage = null)
             }
 
-            GameRepository.addGameToUser(user.id, selectedGame.id)
+            val result = if (SessionManager.isGuestSession.value) {
+                SessionManager.addGameToGuestSession(selectedGame)
+            } else {
+                GameRepository.addGameToUser(user.id, selectedGame.id)
+            }
+
+            result
                 .onSuccess { updatedUser ->
-                    SessionManager.setCurrentUser(updatedUser)
+                    if (!SessionManager.isGuestSession.value) {
+                        SessionManager.setCurrentUser(updatedUser)
+                    }
                     _uiState.update { current ->
-                        current.copy(isSubmitting = false, infoMessage = "Oyun backlog'una eklendi.")
+                        current.copy(
+                            isSubmitting = false,
+                            infoMessage = if (SessionManager.isGuestSession.value) {
+                                "Oyun yerel backlog'una eklendi."
+                            } else {
+                                "Oyun backlog'una eklendi."
+                            }
+                        )
                     }
                 }
                 .onFailure { error ->

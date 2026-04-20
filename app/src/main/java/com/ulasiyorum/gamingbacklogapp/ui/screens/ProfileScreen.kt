@@ -46,14 +46,16 @@ import com.ulasiyorum.gamingbacklogapp.ui.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     onNavigateToLogin: () -> Unit,
+    onNavigateToRegister: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val user by viewModel.currentUser.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isGuestSession by viewModel.isGuestSession.collectAsState()
 
     LaunchedEffect(user?.id) {
-        if (user != null) {
+        if (user != null && !isGuestSession) {
             viewModel.refreshProfile()
         }
     }
@@ -63,7 +65,7 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Profil", style = MaterialTheme.typography.headlineMedium) },
                 actions = {
-                    if (user != null) {
+                    if (user != null && !isGuestSession) {
                         IconButton(onClick = viewModel::refreshProfile, enabled = !uiState.isRefreshing) {
                             Text("Yenile", color = MaterialTheme.colorScheme.primary)
                         }
@@ -140,12 +142,16 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = user?.name.orEmpty().ifBlank { "Adsiz Kullanici" },
+                    text = user?.name.orEmpty().ifBlank { if (isGuestSession) "Misafir Oyuncu" else "Adsiz Kullanici" },
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = user?.email.orEmpty().ifBlank { "E-posta bilgisi yok" },
+                    text = if (isGuestSession) {
+                        "Yerel profil • veriler bu cihazda tutuluyor"
+                    } else {
+                        user?.email.orEmpty().ifBlank { "E-posta bilgisi yok" }
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
                 )
@@ -198,6 +204,26 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            if (isGuestSession) {
+                Button(
+                    onClick = onNavigateToRegister,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Hesap Olustur")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = onNavigateToLogin,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Mevcut Hesapla Giris Yap")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             OutlinedButton(
                 onClick = {
                     viewModel.logout()
@@ -205,7 +231,7 @@ fun ProfileScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Cikis Yap")
+                Text(if (isGuestSession) "Misafir Verisini Temizle" else "Cikis Yap")
             }
         }
     }

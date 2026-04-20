@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.ulasiyorum.gamingbacklogapp.data.session.SessionManager
 import com.ulasiyorum.gamingbacklogapp.ui.screens.EditGameScreen
 import com.ulasiyorum.gamingbacklogapp.ui.screens.GameDetailScreen
 import com.ulasiyorum.gamingbacklogapp.ui.screens.HomeScreen
@@ -31,6 +32,7 @@ fun NavGraph(
             WelcomeScreen(
                 onContinueLogin = { navController.navigate("login") },
                 onContinueWithoutLogin = {
+                    SessionManager.startGuestSession()
                     navController.navigate("home") {
                         popUpTo("welcome") { inclusive = true }
                     }
@@ -70,6 +72,7 @@ fun NavGraph(
         composable("profile") {
             ProfileScreen(
                 onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToRegister = { navController.navigate("register") },
                 onLoggedOut = {
                     navController.navigate("welcome") {
                         popUpTo(navController.graph.id) { inclusive = true }
