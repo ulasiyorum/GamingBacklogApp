@@ -1,29 +1,46 @@
 package com.ulasiyorum.gamingbacklogapp.ui
 
-import com.ulasiyorum.gamingbacklogapp.navigation.NavGraph
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.ulasiyorum.gamingbacklogapp.navigation.NavGraph
 import com.ulasiyorum.gamingbacklogapp.navigation.Screen
+import com.ulasiyorum.gamingbacklogapp.ui.viewmodel.AppViewModel
 
 @Composable
-fun MainScreen() {
+fun MainScreen(appViewModel: AppViewModel = viewModel()) {
     val navController = rememberNavController()
     val items = listOf(Screen.Home, Screen.Backlog, Screen.Profile)
+    val isRestored by appViewModel.isRestored.collectAsState()
+    val currentUser by appViewModel.currentUser.collectAsState()
+
+    if (!isRestored) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Scaffold(
         bottomBar = {
-            // Sadece Home ve Profile ekranlarındayken BottomBar görünsün
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            // Login ekranındaysak BottomBar'ı gizle
             if (currentDestination?.route != "login" && currentDestination?.route != "register" && currentDestination?.route != "welcome") {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -54,7 +71,10 @@ fun MainScreen() {
             }
         }
     ) { innerPadding ->
-        // Navigasyon burada dönüyor
-        NavGraph(navController = navController, modifier = Modifier.padding(innerPadding))
+        NavGraph(
+            navController = navController,
+            startDestination = if (currentUser != null) "home" else "welcome",
+            modifier = Modifier.padding(innerPadding)
+        )
     }
 }

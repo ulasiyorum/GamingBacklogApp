@@ -2,95 +2,217 @@ package com.ulasiyorum.gamingbacklogapp.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ulasiyorum.gamingbacklogapp.data.models.BacklogState
+import com.ulasiyorum.gamingbacklogapp.data.models.stateEnum
+import com.ulasiyorum.gamingbacklogapp.ui.viewmodel.ProfileViewModel
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 1. Profil Fotoğrafı Alanı
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = null,
-                modifier = Modifier.size(60.dp),
-                tint = MaterialTheme.colorScheme.primary
+fun ProfileScreen(
+    onNavigateToLogin: () -> Unit,
+    onLoggedOut: () -> Unit,
+    viewModel: ProfileViewModel = viewModel()
+) {
+    val user by viewModel.currentUser.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(user?.id) {
+        if (user != null) {
+            viewModel.refreshProfile()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Profil", style = MaterialTheme.typography.headlineMedium) },
+                actions = {
+                    if (user != null) {
+                        IconButton(onClick = viewModel::refreshProfile, enabled = !uiState.isRefreshing) {
+                            Text("Yenile", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        if (user == null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Profil icin giris yap", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Kayitli oyun istatistiklerini ve profil bilgilerini gormek icin hesabina giris yapmalisin.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                )
+                Button(onClick = onNavigateToLogin) {
+                    Text("Giris Yap")
+                }
+            }
+            return@Scaffold
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        val userGames = user?.userGames.orEmpty()
+        val completedCount = userGames.count { game -> game.stateEnum() == BacklogState.COMPLETED }
+        val playingCount = userGames.count { game -> game.stateEnum() == BacklogState.PLAYING }
+        val plannedCount = userGames.count { game -> game.stateEnum() == BacklogState.PLANNED }
+        val categoryCounts = userGames
+            .flatMap { backlogGame -> backlogGame.game?.gameCategories.orEmpty() }
+            .mapNotNull { category -> category.category?.name }
+            .groupingBy { name -> name }
+            .eachCount()
+            .toList()
+            .sortedByDescending { (_, count) -> count }
+            .take(3)
+        val maxCategoryCount = categoryCounts.maxOfOrNull { (_, count) -> count } ?: 1
 
-        // 2. Kullanıcı Adı
-        Text(
-            text = "Gamer Pro",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = "Level 42 • Legend",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 3. İstatistik Kartları (Hızlı Özet)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            StatCard("Bitirilen", "12", Modifier.weight(1f))
-            StatCard("Sırada", "45", Modifier.weight(1f))
-            StatCard("Favori", "8", Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        .padding(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = user?.name.orEmpty().ifBlank { "Adsiz Kullanici" },
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = user?.email.orEmpty().ifBlank { "E-posta bilgisi yok" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
+                )
+            }
+
+            if (uiState.errorMessage != null) {
+                Text(
+                    text = uiState.errorMessage.orEmpty(),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatCard("Tamamlanan", completedCount.toString(), Modifier.weight(1f))
+                StatCard("Oynanan", playingCount.toString(), Modifier.weight(1f))
+                StatCard("Planlanan", plannedCount.toString(), Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Oyun Tercihleri",
+                modifier = Modifier.align(Alignment.Start),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (categoryCounts.isEmpty()) {
+                Text(
+                    "Tercih dagilimi icin henuz yeterli veri yok.",
+                    modifier = Modifier.align(Alignment.Start),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            } else {
+                categoryCounts.forEach { (name, count) ->
+                    PreferenceBar(
+                        label = name,
+                        progress = count.toFloat() / maxCategoryCount.toFloat()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedButton(
+                onClick = {
+                    viewModel.logout()
+                    onLoggedOut()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cikis Yap")
+            }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 4. "Oyun Türü" Dağılımı (UI Placeholder)
-        Text(
-            text = "Oyun Tercihleri",
-            modifier = Modifier.align(Alignment.Start),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PreferenceBar("Action / RPG", 0.8f)
-        PreferenceBar("Strategy", 0.4f)
-        PreferenceBar("Indie", 0.6f)
     }
 }
 
 @Composable
-fun StatCard(label: String, value: String, modifier: Modifier) {
+private fun StatCard(label: String, value: String, modifier: Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -107,13 +229,16 @@ fun StatCard(label: String, value: String, modifier: Modifier) {
 }
 
 @Composable
-fun PreferenceBar(label: String, progress: Float) {
+private fun PreferenceBar(label: String, progress: Float) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = Color.White)
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surface
         )
